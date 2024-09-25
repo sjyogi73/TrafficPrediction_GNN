@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 import torch.nn.functional as F
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk  # Import ttk for better styling
 import matplotlib.pyplot as plt
 from datetime import timedelta
 from sklearn.linear_model import LinearRegression
@@ -229,63 +229,36 @@ def predict_traffic():
             total_vehicle_count = round(total_vehicle_count)  # Round the total vehicle count
 
             feature_vector = [user_datetime.hour, user_datetime.day, user_datetime.month] + predicted_counts
-            feature_vector = torch.tensor(feature_vector, dtype=torch.float32).unsqueeze(0)  # Shape: [1, num_features]
-            edge_index_pred = torch.tensor([[0, 0], [0, 0]], dtype=torch.long)  # Self-loop
+            feature_vector = torch.tensor(feature_vector, dtype=torch.float32).unsqueeze(0)  # Shape: (1, num_features)
 
-            # Make a prediction with GNN model
+            # Convert the feature vector to a Data object
+            edge_index = torch.tensor([[0, 0], [0, 0]], dtype=torch.long)  # Self-loop
+            test_data = Data(x=feature_vector, edge_index=edge_index)
+
+            # Predict the traffic situation
+            model.eval()
             with torch.no_grad():
-                gnn_output = model(Data(x=feature_vector, edge_index=edge_index_pred))
-                predicted_class = gnn_output.argmax(dim=1).item()
-                predicted_traffic_condition = label_encoder.inverse_transform([predicted_class])[0]  # Get the traffic situation label
+                output = model(test_data)
+                pred_traffic_situation = output.argmax(dim=1).item()
+                pred_traffic_label = label_encoder.inverse_transform([pred_traffic_situation])[0]
 
-            # Show prediction result in message box
-            messagebox.showinfo("Prediction Result",
-                                f"Predicted Traffic Condition: {predicted_traffic_condition}\n"
-                                f"Predicted Vehicle Counts:\n"
-                                f"Two Wheeler: {int(predicted_counts[0])}\n"
-                                f"Auto Rickshaw: {int(predicted_counts[1])}\n"
-                                f"Car/Utility: {int(predicted_counts[2])}\n"
-                                f"Buses: {int(predicted_counts[3])}\n"
-                                f"Trucks: {int(predicted_counts[4])}\n"
-                                f"Total Vehicles: {int(total_vehicle_count)}")
+            result_text = (
+                f"Predicted Traffic Situation: {pred_traffic_label}\n"
+                f"Predicted Counts:\n"
+                f"Two Wheelers: {int(predicted_counts[0])}\n"
+                f"Auto Rickshaws: {int(predicted_counts[1])}\n"
+                f"Cars/Utilities: {int(predicted_counts[2])}\n"
+                f"Buses: {int(predicted_counts[3])}\n"
+                f"Trucks: {int(predicted_counts[4])}\n"
+                f"Total Vehicles: {int(total_vehicle_count)}\n"
+                f"Date and Time: {user_datetime}"
+            )
+            messagebox.showinfo("Prediction Result", result_text)
+        else:
+            messagebox.showerror("Error", "No predicted counts available.")
 
-            # Generate bar chart for predicted vehicle counts
-            plot_predicted_traffic(predicted_counts, user_datetime)  # Call the new plot function
-
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {str(e)}")
-        
-# --------------------- Plotting Functions --------------------- #
-
-# Function to plot actual traffic
-def plot_actual_traffic(selected_place):
-    # Filter the DataFrame for the selected place
-    actual_data = df[df['Place'] == selected_place]
-
-    # Ensure 'Time' column is in datetime format (if not already done)
-    actual_data['Time'] = pd.to_datetime(actual_data['Time'])
-
-    # Group by time and sum vehicle counts for actual data
-    actual_counts = actual_data.groupby('Time')[['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']].sum()
-
-    # Plotting the actual traffic data
-    plt.figure(figsize=(12, 6))
-    plt.plot(actual_counts.index, actual_counts['Two Wheeler'], label='Two Wheeler', marker='o')
-    plt.plot(actual_counts.index, actual_counts['Auto Rickshaw'], label='Auto Rickshaw', marker='o')
-    plt.plot(actual_counts.index, actual_counts['Car/Utility'], label='Car/Utility', marker='o')
-    plt.plot(actual_counts.index, actual_counts['Buses'], label='Buses', marker='o')
-    plt.plot(actual_counts.index, actual_counts['Trucks'], label='Trucks', marker='o')
-    
-    plt.title(f'Actual Traffic Counts for {selected_place}')
-    plt.xlabel('Time')
-    plt.ylabel('Vehicle Count')
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
-    plt.show()
-
-
+    except ValueError:
+        messagebox.showerror("Error", "Invalid date and time format. Please use YYYY-MM-DD HH:MM.")
 
 def plot_predicted_traffic_chart(predicted_counts, user_datetime):
     plt.figure(figsize=(10, 5))
@@ -338,33 +311,75 @@ def plot_predicted_traffic_plot(predicted_counts, user_datetime):
     plt.legend()
     plt.tight_layout()
     plt.show()
-# --------------------- GUI for User Input --------------------- #
+    
+    # Function to plot actual traffic
+def plot_actual_traffic(selected_place):
+    # Filter the DataFrame for the selected place
+    actual_data = df[df['Place'] == selected_place]
+
+    # Ensure 'Time' column is in datetime format (if not already done)
+    actual_data['Time'] = pd.to_datetime(actual_data['Time'])
+
+    # Group by time and sum vehicle counts for actual data
+    actual_counts = actual_data.groupby('Time')[['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']].sum()
+
+    # Plotting the actual traffic data
+    plt.figure(figsize=(12, 6))
+    plt.plot(actual_counts.index, actual_counts['Two Wheeler'], label='Two Wheeler', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Auto Rickshaw'], label='Auto Rickshaw', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Car/Utility'], label='Car/Utility', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Buses'], label='Buses', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Trucks'], label='Trucks', marker='o')
+    
+    plt.title(f'Actual Traffic Counts for {selected_place}')
+    plt.xlabel('Time')
+    plt.ylabel('Vehicle Count')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.show()
+
+# --------------------- Setting Up GUI --------------------- #
 
 # Create the main window
 root = tk.Tk()
 root.title("Traffic Prediction Tool")
+root.configure(bg='lightblue')  # Background color for the main window
 
-# Input for date and time
-tk.Label(root, text="Enter date and time (YYYY-MM-DD HH:MM):").pack()
-entry = tk.Entry(root)
-entry.pack()
+# Create and place the labels and entry
+label = tk.Label(root, text="Enter Date and Time (YYYY-MM-DD HH:MM):", bg='lightblue', font=('Arial', 12))
+label.pack(pady=10)
 
-# Dropdown for selecting place
-place_var = tk.StringVar(root)
-place_var.set(df['Place'].unique()[0])  # Set default value
-tk.OptionMenu(root, place_var, *df['Place'].unique()).pack()
+entry = tk.Entry(root, font=('Arial', 12), width=30)
+entry.pack(pady=10)
 
-# Button to make prediction
-tk.Button(root, text="Predict Traffic", command=predict_traffic).pack()
+# Dropdown for place selection
+place_var = tk.StringVar(value='Peelamedu')
+places = ['Peelamedu', 'Singanallur']  # Add more places if needed
+place_label = tk.Label(root, text="Select Place:", bg='lightblue', font=('Arial', 12))
+place_label.pack(pady=10)
 
-# Button to plot predicted traffic
-tk.Button(root, text="Predicted Traffic Chart", command=lambda: plot_predicted_traffic_chart(predicted_counts, user_datetime)).pack()
+place_dropdown = ttk.Combobox(root, textvariable=place_var, values=places, state='readonly', font=('Arial', 12))
+place_dropdown.pack(pady=10)
 
-# Button to plot actual traffic
-tk.Button(root, text="Plot Actual Traffic", command=lambda: plot_actual_traffic(place_var.get())).pack()
+# Function to create styled buttons
+def create_styled_button(master, text, command):
+    button = tk.Button(master, text=text, command=command, bg='lightgreen', font=('Arial', 12), relief='raised', bd=2)
+    button.pack(pady=10, padx=10, fill='x')  # Added padding and fill option
+    return button
 
-# Button to plot predicted traffic
-tk.Button(root, text="Plot Predicted Traffic", command=lambda: plot_predicted_traffic_plot(predicted_counts, user_datetime)).pack()
+# Create prediction button
+create_styled_button(root, "Predict Traffic", predict_traffic)
 
-# Run the GUI event loop
+# Create button to plot predicted traffic chart
+create_styled_button(root, "Predicted Traffic Chart", lambda: plot_predicted_traffic_chart(predicted_counts, user_datetime))
+
+# Create button to plot actual traffic
+create_styled_button(root, "Plot Actual Traffic", lambda: plot_actual_traffic(place_var.get()))
+
+# Create button to plot predicted traffic
+create_styled_button(root, "Plot Predicted Traffic", lambda: plot_predicted_traffic_plot(predicted_counts, user_datetime))
+
+# Run the main loop
 root.mainloop()
