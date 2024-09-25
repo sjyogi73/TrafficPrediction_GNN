@@ -1,34 +1,44 @@
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
+import random
 
-# Constants
-num_records = 1000  # Total records to generate
-places = ['Peelamedu', 'Singanallur']
-vehicle_types = ['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks', 'Total_Vehicles']
-traffic_situations = ['Low', 'Moderate', 'High']
+# Function to generate sample traffic data for the last two months
+def generate_sample_data(num_records=1000):
+    data = []
+    current_time = datetime.now()
+    
+    # Calculate the starting date for the last two months
+    start_time = current_time - timedelta(days=60)  # Last two months
 
-# Generate random timestamps for the last two months
-current_time = datetime.now()
-timestamps = [current_time - timedelta(days=np.random.randint(0, 60), hours=np.random.randint(0, 24), minutes=np.random.randint(0, 60)) for _ in range(num_records)]
+    for _ in range(num_records):
+        # Generate random vehicle counts
+        two_wheeler = random.randint(0, 100)
+        auto_rickshaw = random.randint(0, 50)
+        car_utility = random.randint(0, 150)
+        buses = random.randint(0, 20)
+        trucks = random.randint(0, 30)
+        
+        total_vehicles = two_wheeler + auto_rickshaw + car_utility + buses + trucks
+        
+        # Generate a random traffic situation
+        traffic_situation = random.choice(['Low', 'Moderate', 'High'])
 
-# Generate random data
-data = {
-    'Time': timestamps,
-    'Place': np.random.choice(places, num_records),
-    'Two Wheeler': np.random.randint(0, 50, num_records),
-    'Auto Rickshaw': np.random.randint(0, 30, num_records),
-    'Car/Utility': np.random.randint(0, 100, num_records),
-    'Buses': np.random.randint(0, 20, num_records),
-    'Trucks': np.random.randint(0, 15, num_records),
-    'Total_Vehicles': np.random.randint(10, 200, num_records),
-    'Traffic Situation': np.random.choice(traffic_situations, num_records)
-}
+        # Create a record with a timestamp within the last two months
+        record_time = start_time + timedelta(days=random.randint(0, 60), hours=random.randint(0, 23), minutes=random.randint(0, 59))
+        
+        # Append the record to the data list
+        data.append([record_time, "Peelamedu", two_wheeler, auto_rickshaw, car_utility, buses, trucks, total_vehicles, traffic_situation])
 
-# Create a DataFrame
-df = pd.DataFrame(data)
+    # Create a DataFrame
+    df = pd.DataFrame(data, columns=["Time", "Place", "Two Wheeler", "Auto Rickshaw", "Car/Utility", "Buses", "Trucks", "Total_Vehicles", "Traffic Situation"])
+    
+    return df
 
-# Save to CSV
-df.to_csv('traffic_data.csv', index=False)
+# Generate the sample dataset with 1000 records for the last two months
+sample_data = generate_sample_data(1000)
 
-print("Dataset generated and saved as 'traffic_data.csv'")
+# Display the sample dataset
+print(sample_data)
+
+# Save to CSV if needed
+sample_data.to_csv("traffic_data.csv", index=False)

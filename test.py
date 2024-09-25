@@ -1,50 +1,27 @@
+# Load the saved model
 from tensorflow.keras.models import load_model
-import pandas as pd
-
-# Load the trained model
 model = load_model('traffic_condition_model.h5')
 
-# Input data
-input_data = pd.DataFrame({'date': ['2024-12-12 01:00']})
-input_data['date'] = pd.to_datetime(input_data['date'])
-input_data['hour'] = input_data['date'].dt.hour
-input_data['day_of_week'] = input_data['date'].dt.dayofweek
-input_data = input_data.drop('date', axis=1)
+# Create a new dataframe with the input features
+new_input = pd.DataFrame({'Two Wheeler': [10], 'Auto Rickshaw': [20], 'Car/Utility': [30], 'Buses': [40], 'Trucks': [50], 'Total_Vehicles': [60], 'hour': [12], 'day_of_week': [3]})
 
-# Add other features (assuming they are available)
-input_data['weather'] = ['sunny']  # replace with actual weather data
-input_data['temperature'] = [25]  # replace with actual temperature data
-input_data['humidity'] = [60]  # replace with actual humidity data
-input_data['traffic_volume'] = [100]  # replace with actual traffic volume data
-input_data['traffic_speed'] = [30]  # replace with actual traffic speed data
-input_data['traffic_occupancy'] = [20]  # replace with actual traffic occupancy data
-
-# Scale the data (assuming you used MinMaxScaler during training)
-from sklearn.preprocessing import MinMaxScaler
+# Define the scaler
 scaler = MinMaxScaler()
-input_data[['traffic_volume', 'traffic_speed', 'traffic_occupancy']] = scaler.fit_transform(input_data[['traffic_volume', 'traffic_speed', 'traffic_occupancy']])
 
-# Convert categorical features to numerical features
-input_data['weather'] = pd.Categorical(input_data['weather']).codes
+# Fit the scaler to the new input data and transform it
+new_input[['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks', 'Total_Vehicles']] = scaler.fit_transform(new_input[['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks', 'Total_Vehicles']])
 
-# Make predictions
-predictions = model.predict(input_data)
+# Make predictions on the new input
+predictions = model.predict(new_input)
 
 # Convert predictions to traffic conditions
-traffic_conditions = []
+traffic_condition = []
 for prediction in predictions:
-    if prediction < 0.3:
-        traffic_conditions.append('Low')
-    elif prediction < 0.6:
-        traffic_conditions.append('Moderate')
+    if prediction.argmax() == 0:
+        traffic_condition.append('Low')
+    elif prediction.argmax() == 1:
+        traffic_condition.append('Moderate')
     else:
-        traffic_conditions.append('High')
+        traffic_condition.append('High')
 
-# Output the results
-print('Traffic Conditions:')
-print('Two Wheeler:', traffic_conditions[0])
-print('Auto Rickshaw:', traffic_conditions[1])
-print('Car/Utility:', traffic_conditions[2])
-print('Buses:', traffic_conditions[3])
-print('Trucks:', traffic_conditions[4])
-print('Total Vehicles:', traffic_conditions[5])
+print('Predicted Traffic Condition:', traffic_condition[0])
