@@ -257,19 +257,37 @@ def predict_traffic():
         
 # --------------------- Plotting Functions --------------------- #
 
-def plot_actual_traffic():
-    plt.figure(figsize=(10, 5))
-    actual_counts = df.groupby('Traffic Situation').size()
-    actual_counts.plot(kind='bar', color='orange')
-    plt.title('Actual Traffic Conditions')
-    plt.xlabel('Traffic Situation')
-    plt.ylabel('Count')
+# Function to plot actual traffic
+def plot_actual_traffic(selected_place):
+    # Filter the DataFrame for the selected place
+    actual_data = df[df['Place'] == selected_place]
+
+    # Ensure 'Time' column is in datetime format (if not already done)
+    actual_data['Time'] = pd.to_datetime(actual_data['Time'])
+
+    # Group by time and sum vehicle counts for actual data
+    actual_counts = actual_data.groupby('Time')[['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']].sum()
+
+    # Plotting the actual traffic data
+    plt.figure(figsize=(12, 6))
+    plt.plot(actual_counts.index, actual_counts['Two Wheeler'], label='Two Wheeler', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Auto Rickshaw'], label='Auto Rickshaw', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Car/Utility'], label='Car/Utility', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Buses'], label='Buses', marker='o')
+    plt.plot(actual_counts.index, actual_counts['Trucks'], label='Trucks', marker='o')
+    
+    plt.title(f'Actual Traffic Counts for {selected_place}')
+    plt.xlabel('Time')
+    plt.ylabel('Vehicle Count')
     plt.xticks(rotation=45)
-    plt.grid(axis='y')
+    plt.legend()
+    plt.grid()
     plt.tight_layout()
     plt.show()
 
-def plot_predicted_traffic(predicted_counts, user_datetime):
+
+
+def plot_predicted_traffic_chart(predicted_counts, user_datetime):
     plt.figure(figsize=(10, 5))
     vehicle_types = ['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']
     plt.bar(vehicle_types, predicted_counts[:5], color='blue')
@@ -281,6 +299,45 @@ def plot_predicted_traffic(predicted_counts, user_datetime):
     plt.tight_layout()
     plt.show()
 
+
+    plt.figure(figsize=(10, 5))
+    vehicle_types = ['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']
+    
+    # Ensure predicted_counts has the correct number of elements
+    if len(predicted_counts) < 5:
+        messagebox.showerror("Error", "Predicted counts not available.")
+        return
+    
+    plt.bar(vehicle_types, predicted_counts[:5], color='blue')
+    plt.title(f'Predicted Vehicle Counts for {user_datetime.strftime("%Y-%m-%d %H:%M")}')
+    plt.xlabel('Vehicle Type')
+    plt.ylabel('Count')
+    plt.grid(axis='y')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+   
+def plot_predicted_traffic_plot(predicted_counts, user_datetime):
+    plt.figure(figsize=(10, 5))
+    vehicle_types = ['Two Wheeler', 'Auto Rickshaw', 'Car/Utility', 'Buses', 'Trucks']
+    
+    # Ensure predicted_counts has the correct number of elements
+    if len(predicted_counts) < 5:
+        messagebox.showerror("Error", "Predicted counts not available.")
+        return
+    
+    # Plotting predicted traffic counts as a line plot
+    for i, vehicle_type in enumerate(vehicle_types):
+        plt.plot(vehicle_type, predicted_counts[i], marker='o', label=vehicle_type)
+    
+    plt.title(f'Predicted Vehicle Counts for {user_datetime.strftime("%Y-%m-%d %H:%M")}')
+    plt.xlabel('Vehicle Type')
+    plt.ylabel('Count')
+    plt.xticks(rotation=45)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 # --------------------- GUI for User Input --------------------- #
 
 # Create the main window
@@ -300,11 +357,14 @@ tk.OptionMenu(root, place_var, *df['Place'].unique()).pack()
 # Button to make prediction
 tk.Button(root, text="Predict Traffic", command=predict_traffic).pack()
 
+# Button to plot predicted traffic
+tk.Button(root, text="Predicted Traffic Chart", command=lambda: plot_predicted_traffic_chart(predicted_counts, user_datetime)).pack()
+
 # Button to plot actual traffic
-tk.Button(root, text="Plot Actual Traffic", command=plot_actual_traffic).pack()
+tk.Button(root, text="Plot Actual Traffic", command=lambda: plot_actual_traffic(place_var.get())).pack()
 
 # Button to plot predicted traffic
-tk.Button(root, text="Plot Predicted Traffic", command=lambda: plot_predicted_traffic(predicted_counts, user_datetime)).pack()
+tk.Button(root, text="Plot Predicted Traffic", command=lambda: plot_predicted_traffic_plot(predicted_counts, user_datetime)).pack()
 
 # Run the GUI event loop
 root.mainloop()
